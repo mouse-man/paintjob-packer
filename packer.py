@@ -22,13 +22,18 @@ except ModuleNotFoundError:
 
 try:
     import library.paintjob as pj # Copying and generating mod files
-    import library.analytics # Simple analytics using RudderStack, see analytics.py for a detailed breakdown
-    import library.webhook as webhook # For notifying me of new crash reports
+    import library.webhook.webhook as webhook # For notifying me of new crash reports
 except ModuleNotFoundError:
     print("Paint Job Packer can't find its library files")
     print("Make sure that the \"library\" folder is in the same directory as packer.py, and it contains all of its files")
     input("Press enter to quit")
     sys.exit()
+
+try:
+    import library.analytics as analytics # Simple analytics using RudderStack, see analytics.py for a detailed breakdown
+except ImportError:
+    print("Analytics module not available, continuing without it.") # Github version seems to be missing rudder.py, so skip annalytics if this file doesnt exist
+    analytics = None
 
 FORUM_LINK = "https://forum.scssoft.com/viewtopic.php?f=33&t=282956"
 GITHUB_LINK = "https://github.com/Carsmaniac/paintjob-packer"
@@ -1177,7 +1182,7 @@ class PackerApp:
         if len(self.panel_internal_name_variable.get()) > self.internal_name_length:
             inputs_verified = False
             all_errors.append([l("{ErrorInternalNameLongTitle}"), l("{ErrorInternalNameLong}").format(length = self.internal_name_length)])
-        if not re.match(r"^[0-9a-z\_]*$", self.panel_internal_name_variable.get()):
+        if not re.match(r"^[0-9a-z_]*$", self.panel_internal_name_variable.get()):
             inputs_verified = False
             all_errors.append([l("{ErrorInternalNameCharacterTitle}"), l("{ErrorInternalNameCharacter}")])
             # I think uppercase letters might work, but no paint jobs in the base game/DLCs use them, so best practice to avoid them
