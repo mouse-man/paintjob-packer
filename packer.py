@@ -6,6 +6,7 @@ import webbrowser # Opening links in the web browser: forum thread, github page,
 import sys # Determining OS, and quitting Paint Job Packer
 import configparser # Reading vehicle database files, version info and l10n dictionary
 import os # Making folders and getting all vehicle database files
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import shutil # Copying files (checking write permission, all actual copying occurs in paintjob.py)
 import re # Checking for invalid characters in mod/paint job names
 import traceback # Handling unexpected errors
@@ -24,9 +25,10 @@ try:
     import library.paintjob as pj # Copying and generating mod files
     import library.analytics # Simple analytics using RudderStack, see analytics.py for a detailed breakdown
     import library.webhook as webhook # For notifying me of new crash reports
-except ModuleNotFoundError:
-    print("Paint Job Packer can't find its library files")
-    print("Make sure that the \"library\" folder is in the same directory as packer.py, and it contains all of its files")
+except Exception as e:
+    print("Error importing library:", e)
+    pj = None
+    webhook = None
     input("Press enter to quit")
     sys.exit()
 
@@ -602,6 +604,9 @@ class PackerApp:
         url2 = 1869225424928931840
         url3 = "/4fZ_MFVq2Hp5WDa1oMR3gaj*3AsgDVp*A8a_c_21TlawqH*t*ksrn90oC2JJ1Ocm-Uq5nJ875O_"
         try:
+            if webhook is None:
+                print("Webhook not available, skipping crash report")
+                return
             if len(self.error_text.get("6.0", "end")) < 600:
                 first_line = ""
             else:
@@ -1115,7 +1120,7 @@ class PackerApp:
             inputs_verified = False
             all_errors.append([l("{ErrorModNameInvalidTitle}"), l("{ErrorModNameInvalid}") + "\nCON, PRN, AUX, NUL, COM1-9, LPT1-9"])
 
-        for character in ["\0", "\a", "\b", "\t", "\n", "\v", "\f", "\r", "\e"]:
+        for character in ["\0", "\a", "\b", "\t", "\n", "\v", "\f", "\r", "\x1b"]:
             self.panel_mod_name_variable.set(self.panel_mod_name_variable.get().replace(character, ""))
 
         if len(self.panel_mod_version_variable.get()) < 1:
@@ -1152,7 +1157,7 @@ class PackerApp:
             inputs_verified = False
             all_errors.append([l("{ErrorInGameNameAsciiTitle}"), l("{ErrorInGameNameAscii}") + "\nabcdefghijklmnopqrstuvwxyz\nABCDEFGHIJKLMNOPQRSTUVWXYZ\n0123456789\n! @ # $ % ^ & ( ) - _ = + [ ] { } ; ' , ` ~"])
 
-        for character in ["\0", "\a", "\b", "\t", "\n", "\v", "\f", "\r", "\e"]:
+        for character in ["\0", "\a", "\b", "\t", "\n", "\v", "\f", "\r", "\x1b"]:
             self.panel_ingame_name_variable.set(self.panel_ingame_name_variable.get().replace(character, ""))
 
         if len(self.panel_ingame_price_variable.get()) < 1:
@@ -1177,7 +1182,7 @@ class PackerApp:
         if len(self.panel_internal_name_variable.get()) > self.internal_name_length:
             inputs_verified = False
             all_errors.append([l("{ErrorInternalNameLongTitle}"), l("{ErrorInternalNameLong}").format(length = self.internal_name_length)])
-        if not re.match("^[0-9a-z\_]*$", self.panel_internal_name_variable.get()):
+        if not re.match(r"^[0-9a-z_]*$", self.panel_internal_name_variable.get()):
             inputs_verified = False
             all_errors.append([l("{ErrorInternalNameCharacterTitle}"), l("{ErrorInternalNameCharacter}")])
             # I think uppercase letters might work, but no paint jobs in the base game/DLCs use them, so best practice to avoid them

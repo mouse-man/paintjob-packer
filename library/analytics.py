@@ -9,6 +9,8 @@
 
 
 # This part of the code has nothing to do with analytics, it just checks whether or not the program is packaged into an executable, or is a script being run using Python
+import os
+
 try:
 
     # MEIPASS is a variable used by PyInstaller (the program I use to package Paint Job Packer) which tells the program where it is installed
@@ -18,9 +20,8 @@ try:
 # If the program isn't packaged into an executable, MEIPASS won't exist, which will cause an error
 except:
 
-    # In this case, abspath (absolute path) gives us the location of the script instead
-    from os.path import abspath
-    base_path = abspath(".")
+    # Use the directory of this script's parent (paintjob-packer dir)
+    base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # Whether we're using MEIPASS or abspath, we now need to chdir (change directory) to it, so that the version.ini file can be found in step 1
 from os import chdir
@@ -111,14 +112,15 @@ if system_language == None:
 
 
 # RudderStack is used to collect the analytics data, so we need to import the RudderStack Python API
-import library.rudder as rudder
-
-# In order to talk to RudderStack, we need to input two keys
-# The data plane URL tells RudderStack to use my (Carsmaniac's) account
-rudder.data_plane_url = "https://memickledieqb.dataplane.rudderstack.com"
-
-# The write key tells RudderStack to use the Paint Job Packer data source
-rudder.write_key = "241vjwkrtUxeaEmHwuzbTaohsnd"
+try:
+    import library.rudder as rudder
+    # In order to talk to RudderStack, we need to input two keys
+    # The data plane URL tells RudderStack to use my (Carsmaniac's) account
+    rudder.data_plane_url = "https://memickledieqb.dataplane.rudderstack.com"
+    # The write key tells RudderStack to use the Paint Job Packer data source
+    rudder.write_key = "241vjwkrtUxeaEmHwuzbTaohsnd"
+except ImportError:
+    rudder = None
 
 # We also send the current date along with the analytics data
 # RudderStack collects this by itself, but because of the way I'm processing the data we need to send it separately from here
@@ -134,6 +136,8 @@ todays_date = date.today()
 # Finally we can send the data off using a function called send_analytics
 # "vehicle_list" is the list of vehicle numbers that packer.py sends over
 def send_analytics(vehicle_list):
+    if rudder is None:
+        return
 
     # Data is sent to RudderStack using a function called track
     rudder.track(
